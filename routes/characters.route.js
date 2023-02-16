@@ -7,9 +7,15 @@ const Character = require('../models/Character.model')
 /**
  * ? This route should respond with all the characters
  */
-router.get('/', (req, res, next) => {
+router.get('/', async (req, res, next) => {
 	/**Your code goes here */
-})
+		try {
+		  const allCharacters = await Character.find()
+		  res.status(200).json(allCharacters)
+		} catch (error) {
+		  next(error)
+		}
+	  })
 
 /**
  * ? This route should create one character and respond with
