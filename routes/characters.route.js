@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const Character = require("../models/Character.model");
+const {isValideObjectId} = require('mongoose');
 /**
  * !All the routes here are prefixed with /api/characters
  */
@@ -29,11 +30,16 @@ router.get("/", async (req, res, next) => {
 router.post("/", async (req, res, next) => {
   /**Your code goes here */
   try {
-    const {name, occupation, cartoon, weapon} = req.body;
-    if (!name || !occupation || !cartoon || !weapon) {
-      return res.status(400).json({errorMessage: "Wrong fields"})
+    const { name, occupation, cartoon, weapon } = req.body;
+    if (!name || !occupation || !cartoon || !weapon) {
+      return res.status(400).json({ errorMessage: "Wrong fields" });
     }
-    const createOneCharacter = await Character.create({name, occupation, cartoon, weapon});
+    const createOneCharacter = await Character.create({
+      name,
+      occupation,
+      cartoon,
+      weapon,
+    });
     res.status(201).json(createOneCharacter);
   } catch (error) {
     next(error);
@@ -70,15 +76,29 @@ router.get("/:id", async (req, res, next) => {
 router.patch("/:id", async (req, res, next) => {
   /**Your code goes here */
   try {
-	const characterToUpdate = {... req.body}
-	const updatedCharacter = await Character.findByIdAndUpdate(req.params.id, characterToUpdate)
-	
-	res.json(updatedCharacter)
-	} catch (error) {
-	  next(error)
-	}
+    if(!isValideObjectId(req.params.id)) {
+      return res.status(400).json({errorMessage: "Incorrect Id"})
+    }   
+    
+    const foundCharacter = await Character.findById(req.params.id)
+    if(!foundCharacter) {
+      return res.status(400).json({errorMessage: "Character not found"})
+    }
+    
+    const { id } = req.params;
+    const characterToUpdate = {... req.body };
+    const updatedCharacter = await Character.findByIdAndUpdate(
+      id,
+      characterToUpdate,
+      { new: true }
+    );
+
+    res.status(202).json(updatedCharacter);
+  } catch (error) {
+    next(error);
+  }
 });
-	
+
 /**
  * ? Should delete a character and respond with a success or
  * ? error message
@@ -87,9 +107,20 @@ router.patch("/:id", async (req, res, next) => {
  * ? It returns "Character not found" if there is no character with the indicated id
  * ? It returns text
  */
-router.delete("/:id", (req, res, next) => {
+router.delete("/:id", async (req, res, next) => {
   /**Your code goes here */
+  const {id} =  req.params
 
+  try {
+    await Character.findByIdAndDelete(id)
+    /* If we're sendin a 204 status, we won't actually have any content in the response body.
+    We might want to use res.sendStatus(204)
+    */
+    res.json({message: `The character ${id} has been deleted permanently.`})
+    res.sendStatus(204)
+  } catch (error) {
+    next(error)
+  }
 });
 
 module.exports = router;
